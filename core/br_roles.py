@@ -7,7 +7,10 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Tuple, Optional
 
 # Додаємо кореневу директорію проєкту в sys.path для імпортів
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if getattr(sys, 'frozen', False):
+    _PROJECT_ROOT = os.path.dirname(sys.executable)
+else:
+    _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 

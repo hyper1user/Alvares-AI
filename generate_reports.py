@@ -19,8 +19,9 @@ class ReportGenerator:
         self.excel_generator = ExcelReportGenerator()
         
         # Автоматично визначаємо доступні місяці з аркушів Excel
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        excel_path = os.path.join(script_dir, excel_file) if not os.path.isabs(excel_file) else excel_file
+        from path_utils import get_app_dir
+        app_dir = get_app_dir()
+        excel_path = os.path.join(app_dir, excel_file) if not os.path.isabs(excel_file) else excel_file
         self.available_months = get_available_months(excel_path)
         
         # Оберіть тип необхідних даних:
@@ -237,9 +238,9 @@ def main():
     """Головна функція"""
     print("АЛЬВАРЕС AI — зробить все! (якщо не забуде)")
 
-    # Визначаємо директорію, де знаходиться скрипт
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    excel_file = os.path.join(script_dir, "Табель_Багатомісячний.xlsx")
+    # Визначаємо директорію додатку
+    from path_utils import get_app_dir
+    excel_file = os.path.join(get_app_dir(), "Табель_Багатомісячний.xlsx")
 
     # Перевіряємо наявність файлу
     if not os.path.exists(excel_file):

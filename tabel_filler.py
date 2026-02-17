@@ -400,8 +400,8 @@ def fill_tabel_months(tabel_file: str = "Табель_Багатомісячни
     Args:
         tabel_file: Шлях до файлу багатомісячного табелю
     """
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    tabel_path = os.path.join(script_dir, tabel_file) if not os.path.isabs(tabel_file) else tabel_file
+    from path_utils import get_app_dir
+    tabel_path = os.path.join(get_app_dir(), tabel_file) if not os.path.isabs(tabel_file) else tabel_file
 
     available = get_available_months(tabel_path)
     if not available:
@@ -482,8 +482,8 @@ if __name__ == "__main__":
     import sys
 
     tabel_file = "Табель_Багатомісячний.xlsx"
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    tabel_path = os.path.join(script_dir, tabel_file)
+    from path_utils import get_app_dir
+    tabel_path = os.path.join(get_app_dir(), tabel_file)
 
     if len(sys.argv) > 1:
         # Якщо передано аргумент - заповнюємо конкретний місяць

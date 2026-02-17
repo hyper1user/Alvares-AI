@@ -24,7 +24,7 @@ from data.database import (init_db, get_all_personnel, get_all_roles,
                            set_personnel_role)
 from core.br_roles import (auto_assign_all_roles, import_personnel_from_tabel,
                            build_composition_for_date, generate_br_word)
-
+from path_utils import get_base_path, get_app_dir
 
 
 # Палітра темної теми
@@ -64,12 +64,13 @@ class ReportGUI:
         style.configure("TScrollbar", background=_BG_CARD, troughcolor=_BG,
                          arrowcolor=_FG)
 
-        # Визначаємо директорію скрипта
-        script_dir = os.path.dirname(os.path.abspath(__file__))
+        # Шляхи: base_path — bundled ресурси, app_dir — робочі файли
+        base_path = get_base_path()
+        app_dir = get_app_dir()
 
         # Ініціалізуємо генератор
         self.generator = None
-        self.excel_file = os.path.join(script_dir, "Табель_Багатомісячний.xlsx")
+        self.excel_file = os.path.join(app_dir, "Табель_Багатомісячний.xlsx")
         
         # Змінні для вибору
         self.selected_month = tk.StringVar()
@@ -91,9 +92,9 @@ class ReportGUI:
         # Ініціалізуємо базу даних ролей
         init_db()
 
-        self.template_path = os.path.join(script_dir, "templates", "rozp_template.docx")
-        self.br_4shb_file = os.path.join(script_dir, "BR_4ShB.xlsx")
-        self.output_dir = os.path.join(script_dir, "output")
+        self.template_path = os.path.join(base_path, "templates", "rozp_template.docx")
+        self.br_4shb_file = os.path.join(app_dir, "BR_4ShB.xlsx")
+        self.output_dir = os.path.join(app_dir, "output")
 
         # Створюємо інтерфейс
         self._create_main_menu()
@@ -105,8 +106,8 @@ class ReportGUI:
         """Завантажує та створює напівпрозорий фон з emblem.png"""
         if not PIL_AVAILABLE:
             return None
-        
-        emblem_path = "emblem.png"
+
+        emblem_path = os.path.join(get_base_path(), "emblem.png")
         if not os.path.exists(emblem_path):
             return None
         
@@ -183,7 +184,7 @@ class ReportGUI:
             return None
         if self.logo_image:
             return self.logo_image
-        emblem_path = "emblem.png"
+        emblem_path = os.path.join(get_base_path(), "emblem.png")
         if not os.path.exists(emblem_path):
             return None
         try:
@@ -930,9 +931,8 @@ class ReportGUI:
             self.files_status_text.config(state=tk.DISABLED)
             return
 
-        script_dir = os.path.dirname(os.path.abspath(__file__))
         source_file = get_source_filename(selected)
-        source_path = os.path.join(script_dir, source_file)
+        source_path = os.path.join(get_app_dir(), source_file)
         exists = os.path.exists(source_path)
         status = "[+] знайдено" if exists else "[-] не знайдено"
         self.files_status_text.insert("1.0", f"{source_file}  {status}")
@@ -978,8 +978,7 @@ class ReportGUI:
                         raise ValueError(f"Не вдалося розпарсити назву: {selected_month}")
                     year, month_num = parsed
                     source_file = get_source_filename(selected_month)
-                    script_dir = os.path.dirname(os.path.abspath(__file__))
-                    source_path = os.path.join(script_dir, source_file)
+                    source_path = os.path.join(get_app_dir(), source_file)
                     fill_single_month(selected_month, source_path, year, month_num, self.excel_file)
 
                 output = sys.stdout.getvalue()

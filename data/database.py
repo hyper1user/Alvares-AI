@@ -7,7 +7,14 @@ import os
 from datetime import datetime
 from typing import List, Tuple, Optional, Dict
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app.db")
+import sys
+
+def _get_app_dir():
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+DB_PATH = os.path.join(_get_app_dir(), "app.db")
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS personnel (
