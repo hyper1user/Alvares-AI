@@ -28,7 +28,7 @@ from core.br_roles import (auto_assign_all_roles, import_personnel_from_tabel,
                            build_composition_for_date, generate_br_word)
 from path_utils import get_base_path, get_app_dir
 from version import APP_VERSION
-from updater import check_for_update, get_releases_url
+from updater import check_for_update, get_releases_url, download_update, install_update
 
 # Налаштування теми
 ctk.set_appearance_mode("dark")
@@ -140,7 +140,6 @@ class ReportGUI:
 
     def _show_update_notification(self, update: dict):
         version = update["version"]
-        url = update["url"]
         notes = update.get("notes", "")
 
         if hasattr(self, "_version_label"):
@@ -153,10 +152,65 @@ class ReportGUI:
         msg = f"Доступна нова версія АЛЬВАРЕС AI!\n\nПоточна: v{APP_VERSION}\nНова:     v{version}"
         if notes_snippet:
             msg += f"\n\nЩо нового:\n{notes_snippet}"
-        msg += "\n\nВідкрити сторінку завантаження?"
 
-        if messagebox.askyesno("Оновлення доступне", msg):
-            webbrowser.open(url)
+        if update.get("download_url"):
+            msg += "\n\nОновити автоматично?"
+            if messagebox.askyesno("Оновлення доступне", msg):
+                self._do_update(update)
+        else:
+            msg += "\n\nВідкрити сторінку завантаження?"
+            if messagebox.askyesno("Оновлення доступне", msg):
+                webbrowser.open(update["url"])
+
+    def _do_update(self, update: dict):
+        download_url = update["download_url"]
+        version = update["version"]
+
+        win = ctk.CTkToplevel(self.root)
+        win.title(f"Оновлення до v{version}")
+        win.geometry("420x150")
+        win.resizable(False, False)
+        win.transient(self.root)
+        win.grab_set()
+
+        status_label = ctk.CTkLabel(win, text="Завантаження...", font=ctk.CTkFont(size=14))
+        status_label.pack(pady=(20, 5))
+
+        progress_bar = ctk.CTkProgressBar(win, width=360)
+        progress_bar.pack(pady=5)
+        progress_bar.set(0)
+
+        size_label = ctk.CTkLabel(win, text="0 / ? МБ", font=ctk.CTkFont(size=12), text_color=_CLR_DIM)
+        size_label.pack(pady=5)
+
+        def on_progress(downloaded, total):
+            dl_mb = downloaded / (1024 * 1024)
+            if total > 0:
+                total_mb = total / (1024 * 1024)
+                fraction = downloaded / total
+                self.root.after(0, lambda: progress_bar.set(fraction))
+                self.root.after(0, lambda: size_label.configure(text=f"{dl_mb:.1f} / {total_mb:.1f} МБ"))
+            else:
+                self.root.after(0, lambda: size_label.configure(text=f"{dl_mb:.1f} МБ"))
+
+        def do_download():
+            try:
+                setup_path = download_update(download_url, on_progress=on_progress)
+                self.root.after(0, lambda: _on_download_complete(setup_path))
+            except Exception as e:
+                self.root.after(0, lambda: _on_download_error(str(e)))
+
+        def _on_download_complete(setup_path):
+            status_label.configure(text="Встановлення оновлення...")
+            progress_bar.set(1.0)
+            win.after(500, lambda: install_update(setup_path))
+
+        def _on_download_error(err):
+            status_label.configure(text="Помилка завантаження")
+            size_label.configure(text=err[:80], text_color="#e74c3c")
+            win.after(3000, win.destroy)
+
+        threading.Thread(target=do_download, daemon=True).start()
 
     # ==================== УТИЛІТИ ====================
 

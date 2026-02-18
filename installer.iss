@@ -1,6 +1,7 @@
 ; Inno Setup Script for АЛЬВАРЕС AI
 
 [Setup]
+AppId={{alvares-ai-app}
 AppName=АЛЬВАРЕС AI
 AppVersion=1.1.0
 AppPublisher=12 штурмова рота
@@ -11,6 +12,7 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
+CloseApplications=force
 
 [Languages]
 Name: "ukrainian"; MessagesFile: "compiler:Languages\Ukrainian.isl"
