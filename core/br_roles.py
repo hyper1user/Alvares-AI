@@ -115,6 +115,24 @@ def import_personnel_from_tabel(tabel_file: str, sheet_name: str) -> int:
     return 0
 
 
+def get_active_personnel_for_month(tabel_file: str, sheet_name: str) -> List[Dict]:
+    """
+    Повертає бійців з позначками "100" та/або "роп" за обраний місяць.
+    Формат повернення збігається з get_all_personnel() (pib, rank, position, role_id, role_name).
+    """
+    reader = TabelReader(tabel_file)
+    reader.load_workbook()
+    soldiers = reader.read_month_data(sheet_name)
+
+    active_pibs = set()
+    for s in soldiers:
+        if s.days_100_combined:
+            active_pibs.add(s.pib.strip())
+
+    all_personnel = get_all_personnel()
+    return [p for p in all_personnel if p["pib"].strip() in active_pibs]
+
+
 def auto_assign_all_roles() -> Dict[str, int]:
     """
     Автопризначає ролі для тих, хто ще не має призначеної ролі.

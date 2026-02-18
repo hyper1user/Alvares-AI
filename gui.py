@@ -25,7 +25,8 @@ from tabel_filler import fill_single_month, fill_tabel_months
 from data.database import (init_db, get_all_personnel, get_all_roles,
                            set_personnel_role)
 from core.br_roles import (auto_assign_all_roles, import_personnel_from_tabel,
-                           build_composition_for_date, generate_br_word)
+                           build_composition_for_date, generate_br_word,
+                           get_active_personnel_for_month)
 from path_utils import get_base_path, get_app_dir
 from version import APP_VERSION
 from updater import check_for_update, get_releases_url, download_update, install_update
@@ -687,7 +688,8 @@ class ReportGUI:
         except Exception:
             months = []
         months_combo = ctk.CTkComboBox(actions, variable=self.roles_month_var, values=months,
-                                        width=220, state="readonly")
+                                        width=220, state="readonly",
+                                        command=lambda _: self._refresh_roles_treeview())
         months_combo.pack(side="left", padx=5)
         if months:
             months_combo.set(months[-1])
@@ -779,7 +781,15 @@ class ReportGUI:
         for item in self.roles_tree.get_children():
             self.roles_tree.delete(item)
 
-        personnel = get_all_personnel()
+        month = self.roles_month_var.get() if hasattr(self, 'roles_month_var') else ""
+        if month:
+            try:
+                personnel = get_active_personnel_for_month(self.excel_file, month)
+            except Exception:
+                personnel = get_all_personnel()
+        else:
+            personnel = get_all_personnel()
+
         for i, p in enumerate(personnel, 1):
             role_display = p["role_name"] or "— не призначено —"
             self.roles_tree.insert("", "end", iid=p["pib"], values=(
