@@ -8,6 +8,7 @@ import os
 import openpyxl
 from datetime import datetime
 from typing import Optional
+import webbrowser
 
 try:
     from PIL import Image, ImageTk
@@ -25,6 +26,8 @@ from data.database import (init_db, get_all_personnel, get_all_roles,
 from core.br_roles import (auto_assign_all_roles, import_personnel_from_tabel,
                            build_composition_for_date, generate_br_word)
 from path_utils import get_base_path, get_app_dir
+from version import APP_VERSION
+from updater import check_for_update, get_releases_url
 
 
 # Палітра темної теми
@@ -98,10 +101,46 @@ class ReportGUI:
 
         # Створюємо інтерфейс
         self._create_main_menu()
-        
+
         # Перевіряємо наявність файлів
         self._check_files()
+
+        # Перевіряємо оновлення у фоні
+        threading.Thread(target=self._background_update_check, daemon=True).start()
     
+    # ==================== ПЕРЕВІРКА ОНОВЛЕНЬ ====================
+
+    def _background_update_check(self):
+        """Перевіряє наявність нової версії у фоновому потоці."""
+        update = check_for_update()
+        if update:
+            self.root.after(0, lambda: self._show_update_notification(update))
+
+    def _show_update_notification(self, update: dict):
+        """Показує банер оновлення у статус-барі та діалог."""
+        version = update["version"]
+        url = update["url"]
+        notes = update.get("notes", "")
+
+        # Оновлюємо мітку версії як посилання
+        if hasattr(self, "_version_label"):
+            self._version_label.config(
+                text=f"v{APP_VERSION}  →  v{version} доступна!",
+                fg="#f1c40f",
+                cursor="hand2"
+            )
+            self._version_label.bind("<Button-1>", lambda e: webbrowser.open(url))
+
+        # Показуємо діалог
+        notes_snippet = (notes[:300] + "...") if len(notes) > 300 else notes
+        msg = f"Доступна нова версія АЛЬВАРЕС AI!\n\nПоточна: v{APP_VERSION}\nНова:     v{version}"
+        if notes_snippet:
+            msg += f"\n\nЩо нового:\n{notes_snippet}"
+        msg += "\n\nВідкрити сторінку завантаження?"
+
+        if messagebox.askyesno("Оновлення доступне", msg):
+            webbrowser.open(url)
+
     def _load_background_image(self):
         """Завантажує та створює напівпрозорий фон з emblem.png"""
         if not PIL_AVAILABLE:
@@ -243,7 +282,18 @@ class ReportGUI:
             fg=_FG_DIM
         )
         subtitle_label.pack()
-        
+
+        # Рядок версії (праворуч у заголовку)
+        self._version_label = tk.Label(
+            title_frame,
+            text=f"v{APP_VERSION}",
+            font=("Arial", 8),
+            bg=_HEADER_BG,
+            fg=_FG_DIM,
+            cursor="arrow"
+        )
+        self._version_label.place(relx=1.0, rely=0.0, anchor="ne", x=-8, y=4)
+
         # Кнопки функцій
         buttons_frame = tk.Frame(content_frame, bg=_BG)
         buttons_frame.pack(fill=tk.BOTH, expand=True, padx=50, pady=20)

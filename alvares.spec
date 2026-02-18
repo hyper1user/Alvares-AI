@@ -31,6 +31,8 @@ a = Analysis(
         'excel_processor',
         'excel_reports',
         'word_generator',
+        'version',
+        'updater',
     ],
     hookspath=[],
     hooksconfig={},
