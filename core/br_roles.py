@@ -216,15 +216,12 @@ def _replace_in_paragraph(paragraph, key: str, value: str):
     if key not in full_text:
         return
 
-    # Зберігаємо форматування першого run (fallback: Times New Roman 12)
+    # Примусово Times New Roman 12
     font_name = "Times New Roman"
     font_size = Pt(12)
     font_bold = None
     if paragraph.runs:
-        first_run = paragraph.runs[0]
-        font_name = first_run.font.name or "Times New Roman"
-        font_size = first_run.font.size or Pt(12)
-        font_bold = first_run.font.bold
+        font_bold = paragraph.runs[0].font.bold
 
     new_text = full_text.replace(key, value)
 
