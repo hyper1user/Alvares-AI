@@ -3,7 +3,7 @@
 [Setup]
 AppId={{alvares-ai-app}
 AppName=АЛЬВАРЕС AI
-AppVersion=1.4.1
+AppVersion=1.4.2
 AppPublisher=12 штурмова рота
 DefaultDirName={autopf}\AlvaresAI
 DefaultGroupName=АЛЬВАРЕС AI

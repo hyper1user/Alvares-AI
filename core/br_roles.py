@@ -478,7 +478,7 @@ def generate_br_word(
                             _replace_in_paragraph(paragraph, key, value)
 
     os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, f"БР_{date_str.replace('.', '_')}.docx")
+    output_file = os.path.join(output_dir, f"БР_ком_12шр_№{br_4shb_num}_від_{date_str.replace('.', '_')}.docx")
     doc.save(output_file)
     return output_file
 
