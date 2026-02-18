@@ -116,6 +116,32 @@ class ReportGUI:
         if update:
             self.root.after(0, lambda: self._show_update_notification(update))
 
+    def _manual_update_check(self):
+        """Ручна перевірка оновлень (через клік на версію)."""
+        if hasattr(self, "_version_label"):
+            self._version_label.config(text="Перевірка...", fg=_FG_DIM, cursor="arrow")
+            self._version_label.unbind("<Button-1>")
+
+        def do_check():
+            update = check_for_update()
+            if update:
+                self.root.after(0, lambda: self._show_update_notification(update))
+            else:
+                def restore():
+                    if hasattr(self, "_version_label"):
+                        self._version_label.config(
+                            text=f"v{APP_VERSION}  ✓",
+                            fg="#2ecc71",
+                            cursor="hand2"
+                        )
+                        self._version_label.bind("<Button-1>", lambda e: self._manual_update_check())
+                        self.root.after(3000, lambda: self._version_label.config(
+                            text=f"v{APP_VERSION}  🔄", fg=_FG_DIM
+                        ) if hasattr(self, "_version_label") else None)
+                self.root.after(0, restore)
+
+        threading.Thread(target=do_check, daemon=True).start()
+
     def _show_update_notification(self, update: dict):
         """Показує банер оновлення у статус-барі та діалог."""
         version = update["version"]
@@ -283,16 +309,19 @@ class ReportGUI:
         )
         subtitle_label.pack()
 
-        # Рядок версії (праворуч у заголовку)
+        # Рядок версії (праворуч у заголовку) — клік для ручної перевірки оновлень
         self._version_label = tk.Label(
             title_frame,
-            text=f"v{APP_VERSION}",
+            text=f"v{APP_VERSION}  🔄",
             font=("Arial", 8),
             bg=_HEADER_BG,
             fg=_FG_DIM,
-            cursor="arrow"
+            cursor="hand2"
         )
         self._version_label.place(relx=1.0, rely=0.0, anchor="ne", x=-8, y=4)
+        self._version_label.bind("<Button-1>", lambda e: self._manual_update_check())
+        self._version_label.bind("<Enter>", lambda e: self._version_label.config(fg=_FG))
+        self._version_label.bind("<Leave>", lambda e: self._version_label.config(fg=_FG_DIM))
 
         # Кнопки функцій
         buttons_frame = tk.Frame(content_frame, bg=_BG)
