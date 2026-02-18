@@ -33,6 +33,7 @@ a = Analysis(
         'word_generator',
         'version',
         'updater',
+        'customtkinter',
     ],
     hookspath=[],
     hooksconfig={},
