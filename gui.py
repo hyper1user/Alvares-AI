@@ -68,6 +68,11 @@ class ReportGUI:
         self.root.geometry("850x750")
         self.root.resizable(True, True)
 
+        # Іконка вікна
+        ico_path = os.path.join(get_base_path(), "alvares.ico")
+        if os.path.exists(ico_path):
+            self.root.iconbitmap(ico_path)
+
         # Стилізація Treeview (ttk) для екрану ролей
         style = ttk.Style()
         style.theme_use("clam")
@@ -96,6 +101,7 @@ class ReportGUI:
         self.end_date_var = tk.StringVar()
         self.order_number_var = tk.StringVar()
         self.logo_image = None
+        self._busy_photo = None
 
         self.current_screen = None
 
@@ -866,13 +872,35 @@ class ReportGUI:
 
     # ==================== ЗАГАЛЬНІ МЕТОДИ ====================
 
+    def _get_busy_photo(self):
+        if self._busy_photo:
+            return self._busy_photo
+        if not PIL_AVAILABLE:
+            return None
+        busy_path = os.path.join(get_base_path(), "alvares_busy.png")
+        if not os.path.exists(busy_path):
+            return None
+        try:
+            img = Image.open(busy_path).resize((24, 24), Image.Resampling.LANCZOS)
+            self._busy_photo = ImageTk.PhotoImage(img)
+            return self._busy_photo
+        except Exception:
+            return None
+
     def _make_status_bar(self, parent, text: str):
+        status_frame = ctk.CTkFrame(parent, height=28, fg_color="transparent")
+        status_frame.pack(side="bottom", fill="x", padx=10, pady=(0, 4))
+
+        self._busy_icon_label = tk.Label(status_frame, bg=self.root.cget("bg"))
+        self._busy_icon_label.pack(side="left", padx=(0, 4))
+        self._busy_icon_label.pack_forget()
+
         self.status_label = ctk.CTkLabel(
-            parent, text=text,
+            status_frame, text=text,
             font=ctk.CTkFont(size=10), text_color=_CLR_DIM,
             height=24, anchor="w"
         )
-        self.status_label.pack(side="bottom", fill="x", padx=10, pady=(0, 4))
+        self.status_label.pack(side="left", fill="x", expand=True)
 
     def _check_files(self):
         if not os.path.exists(self.excel_file):
@@ -898,6 +926,17 @@ class ReportGUI:
     def _update_status(self, message):
         if hasattr(self, 'status_label'):
             self.status_label.configure(text=message)
+            busy_keywords = ("Імпорт", "Автопризначен", "Генерація", "Заповнення", "Склад", "Створ")
+            is_busy = any(message.startswith(kw) for kw in busy_keywords)
+            if hasattr(self, '_busy_icon_label'):
+                if is_busy:
+                    photo = self._get_busy_photo()
+                    if photo:
+                        self._busy_icon_label.configure(image=photo)
+                        self._busy_icon_label.image = photo
+                        self._busy_icon_label.pack(side="left", padx=(0, 4))
+                else:
+                    self._busy_icon_label.pack_forget()
             self.root.update_idletasks()
 
     # ==================== ГЕНЕРАЦІЯ РАПОРТІВ ====================

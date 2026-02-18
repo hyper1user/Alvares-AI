@@ -3,10 +3,11 @@
 [Setup]
 AppId={{alvares-ai-app}
 AppName=АЛЬВАРЕС AI
-AppVersion=1.2.0
+AppVersion=1.3.0
 AppPublisher=12 штурмова рота
 DefaultDirName={autopf}\AlvaresAI
 DefaultGroupName=АЛЬВАРЕС AI
+SetupIconFile=alvares.ico
 OutputBaseFilename=AlvaresAI_Setup
 Compression=lzma2
 SolidCompression=yes
@@ -30,8 +31,8 @@ Source: "app.db"; DestDir: "{app}"; Flags: ignoreversion
 Name: "{app}\output"
 
 [Icons]
-Name: "{group}\АЛЬВАРЕС AI"; Filename: "{app}\Alvares.exe"
-Name: "{autodesktop}\АЛЬВАРЕС AI"; Filename: "{app}\Alvares.exe"; Tasks: desktopicon
+Name: "{group}\АЛЬВАРЕС AI"; Filename: "{app}\Alvares.exe"; IconFilename: "{app}\_internal\alvares.ico"
+Name: "{autodesktop}\АЛЬВАРЕС AI"; Filename: "{app}\Alvares.exe"; IconFilename: "{app}\_internal\alvares.ico"; Tasks: desktopicon
 
 [Tasks]
 Name: "desktopicon"; Description: "Створити ярлик на робочому столі"; GroupDescription: "Додаткові ярлики:"

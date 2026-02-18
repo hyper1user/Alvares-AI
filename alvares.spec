@@ -12,6 +12,9 @@ a = Analysis(
     datas=[
         ('templates/rozp_template.docx', 'templates'),
         ('emblem.png', '.'),
+        ('alvares.ico', '.'),
+        ('alvares_icon.png', '.'),
+        ('alvares_busy.png', '.'),
     ],
     hiddenimports=[
         'PIL',
@@ -57,6 +60,7 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
+    icon='alvares.ico',
     console=False,  # windowed mode, без консолі
     disable_windowed_traceback=False,
     argv_emulation=False,
