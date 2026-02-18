@@ -2,7 +2,7 @@
 
 [Setup]
 AppName=АЛЬВАРЕС AI
-AppVersion=1.0
+AppVersion=1.1.0
 AppPublisher=12 штурмова рота
 DefaultDirName={autopf}\AlvaresAI
 DefaultGroupName=АЛЬВАРЕС AI
