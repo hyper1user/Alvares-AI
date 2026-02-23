@@ -484,3 +484,71 @@ def generate_br_word(
     return output_file
 
 
+def generate_rop_word(
+    br_date: datetime,
+    tabel_file: str,
+    template_path: str,
+    output_dir: str = "output",
+    br_4shb_file: str = None
+) -> Optional[str]:
+    """
+    Генерує Word-документ БР для бійців з першим днем 'роп'.
+    Повертає шлях до файлу або None якщо немає бійців з 'роп'.
+    """
+    from docx import Document
+    from br_updater import get_first_rop_entries
+
+    entries = get_first_rop_entries(tabel_file, br_date)
+    if not entries:
+        return None
+
+    if not os.path.exists(template_path):
+        raise FileNotFoundError(f"Шаблон не знайдено: {template_path}")
+
+    doc = Document(template_path)
+
+    tabel_date = get_tabel_date(br_date)
+    date_str = br_date.strftime("%d.%m.%Y")
+    execution_date_str = tabel_date.strftime("%d.%m.%Y")
+    day_of_year = tabel_date.timetuple().tm_yday
+
+    # Номер БР з BR_4ShB + "/1"
+    if br_4shb_file:
+        br_4shb_num, _ = get_br_from_4shb(br_4shb_file, br_date)
+        br_4shb_num = f"{br_4shb_num}/1"
+    else:
+        br_4shb_num = f"{day_of_year}/1"
+
+    # Формуємо списки для маркерів
+    rop_lines = "\n".join(pib_to_document_format(pib, rank) for pib, rank, _ in entries)
+    posada_lines = "\n".join(pos for _, _, pos in entries)
+
+    replacements = {
+        "{{ROP}}": rop_lines,
+        "{{POSADA}}": posada_lines,
+        "{{бр}}": br_4shb_num,
+        "{{дата_бр}}": date_str,
+        "<<Дата_виконання>>": execution_date_str,
+        "<<№*>>": f"№{day_of_year}/1",
+        "<<від 01.01.2026 р.>>": f"від {date_str} р.",
+    }
+
+    for paragraph in doc.paragraphs:
+        for key, value in replacements.items():
+            if key in paragraph.text:
+                _replace_in_paragraph(paragraph, key, value)
+
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    for key, value in replacements.items():
+                        if key in paragraph.text:
+                            _replace_in_paragraph(paragraph, key, value)
+
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, f"БР_ком_12шр_№{day_of_year}_1_від_{date_str.replace('.', '_')}.docx")
+    doc.save(output_file)
+    return output_file
+
+

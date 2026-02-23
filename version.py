@@ -1,5 +1,5 @@
 """Версія додатку АЛЬВАРЕС AI"""
 
-APP_VERSION = "1.4.5"
+APP_VERSION = "1.5.0"
 GITHUB_OWNER = "hyper1user"
 GITHUB_REPO = "Alvares-AI"

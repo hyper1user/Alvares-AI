@@ -11,6 +11,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('templates/rozp_template.docx', 'templates'),
+        ('templates/pozition_template.docx', 'templates'),
         ('emblem.png', '.'),
         ('alvares.ico', '.'),
         ('alvares_icon.png', '.'),

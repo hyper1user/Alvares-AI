@@ -3,7 +3,7 @@
 [Setup]
 AppId={{alvares-ai-app}
 AppName=АЛЬВАРЕС AI
-AppVersion=1.4.4
+AppVersion=1.5.0
 AppPublisher=12 штурмова рота
 DefaultDirName={autopf}\AlvaresAI
 DefaultGroupName=АЛЬВАРЕС AI
@@ -20,10 +20,11 @@ Name: "ukrainian"; MessagesFile: "compiler:Languages\Ukrainian.isl"
 
 [Files]
 ; Вся папка dist\Alvares (крім шаблону — він окремо)
-Source: "dist\Alvares\*"; DestDir: "{app}"; Excludes: "_internal\templates\rozp_template.docx"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\Alvares\*"; DestDir: "{app}"; Excludes: "_internal\templates\rozp_template.docx,_internal\templates\pozition_template.docx"; Flags: ignoreversion recursesubdirs createallsubdirs
 
-; Шаблон БР — не перезаписувати якщо користувач редагував
+; Шаблони БР — не перезаписувати якщо користувач редагував
 Source: "dist\Alvares\_internal\templates\rozp_template.docx"; DestDir: "{app}\_internal\templates"; Flags: onlyifdoesntexist
+Source: "dist\Alvares\_internal\templates\pozition_template.docx"; DestDir: "{app}\_internal\templates"; Flags: onlyifdoesntexist
 
 ; Робочі файли (onlyifdoesntexist — щоб не затерти дані при оновленні)
 Source: "Табель_Багатомісячний.xlsx"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist

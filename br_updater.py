@@ -188,3 +188,71 @@ def _get_soldiers_from_tabel_detailed(
                 soldiers_30.append((pib_str, rank_str))
 
     return soldiers_100, soldiers_rop, soldiers_30
+
+
+def get_first_rop_entries(
+    tabel_file: str, br_date: datetime
+) -> List[Tuple[str, str, str]]:
+    """
+    Знаходить бійців, у яких на дату табеля (br_date+1) починається серія 'роп'.
+    Тобто: tabel_day == 'роп' AND попередній день != 'роп'.
+
+    Returns:
+        [(pib, rank, position)] — позиція з маленької літери
+    """
+    tabel_date = get_tabel_date(br_date)
+
+    wb = openpyxl.load_workbook(tabel_file, data_only=True)
+
+    sheet_name = None
+    for name in wb.sheetnames:
+        parsed = parse_month_sheet_name(name)
+        if parsed and parsed[0] == tabel_date.year and parsed[1] == tabel_date.month:
+            sheet_name = name
+            break
+
+    if not sheet_name:
+        return []
+
+    ws = wb[sheet_name]
+
+    header_row = None
+    for row in range(1, 20):
+        if ws.cell(row, 6).value and "ПІБ" in str(ws.cell(row, 6).value):
+            header_row = row
+            break
+
+    if not header_row:
+        return []
+
+    tabel_col = 6 + tabel_date.day
+    prev_col = 6 + br_date.day if br_date.month == tabel_date.month else None
+
+    result = []
+    for row in range(header_row + 1, ws.max_row + 1):
+        pib = ws.cell(row, 6).value
+        if not pib or not str(pib).strip():
+            continue
+
+        mark = ws.cell(row, tabel_col).value
+        if not mark or str(mark).strip().lower() != "роп":
+            continue
+
+        # Перевіряємо попередній день
+        if prev_col:
+            prev_mark = ws.cell(row, prev_col).value
+            prev_str = str(prev_mark).strip().lower() if prev_mark else ""
+            if prev_str == "роп":
+                continue  # Не перший день серії
+        # Якщо prev_col is None (перший день місяця) — вважаємо першим роп
+
+        pib_str = str(pib).strip()
+        rank_str = str(ws.cell(row, 5).value or "").strip()
+        position = ws.cell(row, 4).value
+        position_str = str(position).strip() if position else ""
+        if position_str:
+            position_str = position_str[0].lower() + position_str[1:]
+
+        result.append((pib_str, rank_str, position_str))
+
+    return result
