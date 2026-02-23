@@ -39,6 +39,16 @@ PLACEHOLDER_MAP = {
     "Резервні групи": "{{ROLE_RESERVE}}",
 }
 
+# Дефолтні значення для ролей, якщо немає бійців з mark==100
+ROLE_DEFAULTS = {
+    "{{ROLE_SENIOR_TECH}}": "старший сержант ЮХТА Андрій Петрович",
+    "{{ROLE_FIRST_SERGEANT}}": "молодший сержант ШТУНДЕР Антон Валерійович",
+    "{{ROLE_SUPPLY_SERGEANT}}": "сержант КЛИМОВЕЦ Сергій Григорович",
+}
+
+# Ролі, абзац яких видаляється якщо немає бійців
+ROLE_REMOVE_IF_EMPTY = {"{{ROLE_PPP}}"}
+
 
 def auto_assign_role(position: str) -> Optional[str]:
     """
@@ -205,6 +215,14 @@ def build_composition_for_date(
     # Бійці з 100 без ролі — НЕ включаються до БР
 
     return result
+
+
+def _remove_paragraph(paragraph):
+    """Видаляє параграф з документа."""
+    p_element = paragraph._element
+    parent = p_element.getparent()
+    if parent is not None:
+        parent.remove(p_element)
 
 
 def _replace_in_paragraph(paragraph, key: str, value: str):
@@ -502,7 +520,12 @@ def generate_br_word(
             parts = [pib_to_document_format(m["pib"], m["rank"]) for m in members]
             replacements[placeholder] = ", ".join(parts)
         else:
-            replacements[placeholder] = "—"
+            if placeholder in ROLE_DEFAULTS:
+                replacements[placeholder] = ROLE_DEFAULTS[placeholder]
+            elif placeholder in ROLE_REMOVE_IF_EMPTY:
+                replacements[placeholder] = None  # маркер для видалення абзацу
+            else:
+                replacements[placeholder] = "—"
 
     # ACK_LIST — аркуш доведення: окремі параграфи для кожної людини
     from br_updater import pib_to_table_format
@@ -515,6 +538,7 @@ def generate_br_word(
     replacements["{{ACK_LIST}}"] = "—" if not ack_members else ""
 
     # Замінюємо у параграфах
+    paragraphs_to_remove = []
     for paragraph in doc.paragraphs:
         # Спеціальна обробка ACK_LIST — кожна людина як окремий параграф
         if "{{ACK_LIST}}" in paragraph.text and ack_members:
@@ -522,16 +546,27 @@ def generate_br_word(
             continue
         for key, value in replacements.items():
             if key in paragraph.text:
+                if value is None:
+                    paragraphs_to_remove.append(paragraph)
+                    break
                 _replace_in_paragraph(paragraph, key, value)
+    for p in paragraphs_to_remove:
+        _remove_paragraph(p)
 
     # Замінюємо в таблицях
+    paragraphs_to_remove = []
     for table in doc.tables:
         for row in table.rows:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
                     for key, value in replacements.items():
                         if key in paragraph.text:
+                            if value is None:
+                                paragraphs_to_remove.append(paragraph)
+                                break
                             _replace_in_paragraph(paragraph, key, value)
+    for p in paragraphs_to_remove:
+        _remove_paragraph(p)
 
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, f"БР_ком_12шр_№{day_of_year}_від_{date_str.replace('.', '_')}.docx")
