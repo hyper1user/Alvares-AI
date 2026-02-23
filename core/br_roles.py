@@ -211,6 +211,7 @@ def _replace_in_paragraph(paragraph, key: str, value: str):
     """Замінює плейсхолдер у параграфі, підтримує багаторядкові значення."""
     from docx.shared import Pt
     from docx.oxml.ns import qn
+    import copy
 
     full_text = paragraph.text
     if key not in full_text:
@@ -225,20 +226,18 @@ def _replace_in_paragraph(paragraph, key: str, value: str):
 
     new_text = full_text.replace(key, value)
 
-    # Видаляємо всі runs
-    p_element = paragraph._element
-    for r in list(p_element.findall('.//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}r')):
-        p_element.remove(r)
-
-    # Створюємо нові runs з переносами рядків
     lines = new_text.split("\n")
-    for i, line in enumerate(lines):
-        run = paragraph.add_run(line)
+
+    if len(lines) <= 1:
+        # Однорядковий текст — просто замінюємо runs
+        p_element = paragraph._element
+        for r in list(p_element.findall('.//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}r')):
+            p_element.remove(r)
+        run = paragraph.add_run(new_text)
         run.font.name = font_name
         run.font.size = font_size
         if font_bold is not None:
             run.font.bold = font_bold
-        # Примусово встановлюємо шрифт для кирилиці через XML
         rPr = run._element.get_or_add_rPr()
         rFonts = rPr.find(qn('w:rFonts'))
         if rFonts is None:
@@ -248,9 +247,65 @@ def _replace_in_paragraph(paragraph, key: str, value: str):
         rFonts.set(qn('w:hAnsi'), font_name)
         rFonts.set(qn('w:cs'), font_name)
         rFonts.set(qn('w:eastAsia'), font_name)
-        if i < len(lines) - 1:
-            br_elem = run._element.makeelement(qn('w:br'), {})
-            run._element.append(br_elem)
+        return
+
+    # Багаторядковий текст — створюємо окремі абзаци (звичайний Enter)
+    p_element = paragraph._element
+    parent = p_element.getparent()
+    p_index = list(parent).index(p_element)
+
+    # Зберігаємо pPr (властивості абзацу) для копіювання
+    pPr = p_element.find(qn('w:pPr'))
+
+    def _make_paragraph_with_text(text):
+        """Створює новий абзац з текстом та форматуванням."""
+        new_p = p_element.makeelement(qn('w:p'), {})
+        if pPr is not None:
+            new_p.append(copy.deepcopy(pPr))
+        r = new_p.makeelement(qn('w:r'), {})
+        rPr_new = r.makeelement(qn('w:rPr'), {})
+        rFonts_new = r.makeelement(qn('w:rFonts'), {
+            qn('w:ascii'): font_name, qn('w:hAnsi'): font_name,
+            qn('w:cs'): font_name, qn('w:eastAsia'): font_name,
+        })
+        rPr_new.append(rFonts_new)
+        sz = r.makeelement(qn('w:sz'), {qn('w:val'): '24'})
+        rPr_new.append(sz)
+        szCs = r.makeelement(qn('w:szCs'), {qn('w:val'): '24'})
+        rPr_new.append(szCs)
+        if font_bold:
+            b = r.makeelement(qn('w:b'), {})
+            rPr_new.append(b)
+        r.append(rPr_new)
+        t = r.makeelement(qn('w:t'), {})
+        t.text = text
+        t.set(qn('xml:space'), 'preserve')
+        r.append(t)
+        new_p.append(r)
+        return new_p
+
+    # Перший рядок залишається в оригінальному абзаці
+    for r in list(p_element.findall('.//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}r')):
+        p_element.remove(r)
+    run = paragraph.add_run(lines[0])
+    run.font.name = font_name
+    run.font.size = font_size
+    if font_bold is not None:
+        run.font.bold = font_bold
+    rPr = run._element.get_or_add_rPr()
+    rFonts = rPr.find(qn('w:rFonts'))
+    if rFonts is None:
+        rFonts = run._element.makeelement(qn('w:rFonts'), {})
+        rPr.insert(0, rFonts)
+    rFonts.set(qn('w:ascii'), font_name)
+    rFonts.set(qn('w:hAnsi'), font_name)
+    rFonts.set(qn('w:cs'), font_name)
+    rFonts.set(qn('w:eastAsia'), font_name)
+
+    # Решта рядків — нові абзаци після оригінального
+    for j, line in enumerate(lines[1:], start=1):
+        new_p = _make_paragraph_with_text(line)
+        parent.insert(p_index + j, new_p)
 
 
 def _make_ack_run(p_elem, text, font_name='Times New Roman', size_half_pt='24'):
