@@ -418,8 +418,9 @@ def generate_br_word(
     date_str = br_date.strftime("%d.%m.%Y")
 
     # Номер БР з BR_4ShB.xlsx (якщо файл вказано)
+    # Шукаємо по даті БР (br_date), а не по даті табеля (tabel_date)
     if br_4shb_file:
-        br_4shb_num, _ = get_br_from_4shb(br_4shb_file, tabel_date)
+        br_4shb_num, _ = get_br_from_4shb(br_4shb_file, br_date)
     else:
         br_4shb_num = br_number
 
