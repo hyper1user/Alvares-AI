@@ -512,28 +512,34 @@ def generate_rop_word(
     execution_date_str = tabel_date.strftime("%d.%m.%Y")
     day_of_year = tabel_date.timetuple().tm_yday
 
-    # Номер БР з BR_4ShB + "/1"
+    # Номер БР з BR_4ShB (без "/1"), "/1" тільки для <<№*>>
     if br_4shb_file:
         br_4shb_num, _ = get_br_from_4shb(br_4shb_file, br_date)
-        br_4shb_num = f"{br_4shb_num}/1"
     else:
-        br_4shb_num = f"{day_of_year}/1"
+        br_4shb_num = str(day_of_year)
 
-    # Формуємо списки для маркерів
-    rop_lines = "\n".join(pib_to_document_format(pib, rank) for pib, rank, _ in entries)
-    posada_lines = "\n".join(pos for _, _, pos in entries)
+    # Формуємо список: "звання ПІБ, посада;" на кожен рядок
+    rop_lines = ";\n".join(
+        f"{pib_to_document_format(pib, rank)}, {pos}" for pib, rank, pos in entries
+    ) + ";"
+
+    # Аркуш доведення — список бійців
+    ack_members = [{"pib": pib, "rank": rank} for pib, rank, _ in entries]
 
     replacements = {
         "{{ROP}}": rop_lines,
-        "{{POSADA}}": posada_lines,
         "{{бр}}": br_4shb_num,
         "{{дата_бр}}": date_str,
+        "{{ACK_LIST}}": "—" if not ack_members else "",
         "<<Дата_виконання>>": execution_date_str,
         "<<№*>>": f"№{day_of_year}/1",
         "<<від 01.01.2026 р.>>": f"від {date_str} р.",
     }
 
     for paragraph in doc.paragraphs:
+        if "{{ACK_LIST}}" in paragraph.text and ack_members:
+            _insert_ack_list(paragraph, ack_members)
+            continue
         for key, value in replacements.items():
             if key in paragraph.text:
                 _replace_in_paragraph(paragraph, key, value)
@@ -542,6 +548,9 @@ def generate_rop_word(
         for row in table.rows:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
+                    if "{{ACK_LIST}}" in paragraph.text and ack_members:
+                        _insert_ack_list(paragraph, ack_members)
+                        continue
                     for key, value in replacements.items():
                         if key in paragraph.text:
                             _replace_in_paragraph(paragraph, key, value)
