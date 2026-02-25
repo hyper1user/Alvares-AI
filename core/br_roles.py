@@ -225,7 +225,7 @@ def _remove_paragraph(paragraph):
         parent.remove(p_element)
 
 
-def _replace_in_paragraph(paragraph, key: str, value: str):
+def _replace_in_paragraph(paragraph, key: str, value: str, size_pt: int = 12):
     """Замінює плейсхолдер у параграфі, підтримує багаторядкові значення."""
     from docx.shared import Pt
     from docx.oxml.ns import qn
@@ -235,9 +235,9 @@ def _replace_in_paragraph(paragraph, key: str, value: str):
     if key not in full_text:
         return
 
-    # Примусово Times New Roman 12
+    # Примусово Times New Roman з вказаним розміром
     font_name = "Times New Roman"
-    font_size = Pt(12)
+    font_size = Pt(size_pt)
     font_bold = None
     if paragraph.runs:
         font_bold = paragraph.runs[0].font.bold
@@ -287,9 +287,10 @@ def _replace_in_paragraph(paragraph, key: str, value: str):
             qn('w:cs'): font_name, qn('w:eastAsia'): font_name,
         })
         rPr_new.append(rFonts_new)
-        sz = r.makeelement(qn('w:sz'), {qn('w:val'): '24'})
+        half_pts = str(size_pt * 2)
+        sz = r.makeelement(qn('w:sz'), {qn('w:val'): half_pts})
         rPr_new.append(sz)
-        szCs = r.makeelement(qn('w:szCs'), {qn('w:val'): '24'})
+        szCs = r.makeelement(qn('w:szCs'), {qn('w:val'): half_pts})
         rPr_new.append(szCs)
         if font_bold:
             b = r.makeelement(qn('w:b'), {})
@@ -474,7 +475,8 @@ def generate_br_word(
     template_path: str,
     output_dir: str = "output",
     br_4shb_file: str = None,
-    tabel_file: str = None
+    tabel_file: str = None,
+    rop_txt_path: str = None
 ) -> str:
     """
     Генерує Word-документ БР з шаблону, замінюючи плейсхолдери.
@@ -529,13 +531,15 @@ def generate_br_word(
                 replacements[placeholder] = "—"
 
     # ROP — бійці з 2-го "роп" і далі, перелік через кому
+    # Завдання {{ROP1}}-{{ROP4}} з ROP.txt
+    rop_placeholders = {}
     if tabel_file:
         from br_updater import get_first_rop_entries
         rop_entries = get_first_rop_entries(tabel_file, br_date)
         extra_rop = rop_entries[1:] if len(rop_entries) > 1 else []
         if extra_rop:
             rop_list = ", ".join(
-                f"{pib_to_document_format(pib, rank)}, {pos}"
+                pib_to_document_format(pib, rank)
                 for pib, rank, pos in extra_rop
             )
             replacements["{{ROP}}"] = rop_list
@@ -543,6 +547,20 @@ def generate_br_word(
             replacements["{{ROP}}"] = None
     else:
         replacements["{{ROP}}"] = None
+
+    # Завдання з ROP.txt: {{ROP1}}-{{ROP4}}
+    if rop_txt_path and os.path.exists(rop_txt_path):
+        import re
+        with open(rop_txt_path, "r", encoding="utf-8") as f:
+            rop_content = f.read()
+        for m in re.finditer(r"\{\{ROP(\d+)\}\}\s*(.+)", rop_content):
+            marker = f"{{{{ROP{m.group(1)}}}}}"
+            task_text = m.group(2).strip()
+            rop_placeholders[marker] = task_text
+    # Додаємо ROP-завдання до replacements (або None для видалення)
+    for i in range(1, 5):
+        marker = f"{{{{ROP{i}}}}}"
+        replacements[marker] = rop_placeholders.get(marker, None)
 
     # ACK_LIST — аркуш доведення: окремі параграфи для кожної людини
     from br_updater import pib_to_table_format
@@ -553,6 +571,9 @@ def generate_br_word(
 
     # Для звичайних плейсхолдерів ставимо заглушку (буде замінено нижче)
     replacements["{{ACK_LIST}}"] = "—" if not ack_members else ""
+
+    # Плейсхолдери ROP — шрифт 10pt
+    rop_keys = {"{{ROP}}", "{{ROP1}}", "{{ROP2}}", "{{ROP3}}", "{{ROP4}}"}
 
     # Замінюємо у параграфах
     paragraphs_to_remove = []
@@ -566,7 +587,8 @@ def generate_br_word(
                 if value is None:
                     paragraphs_to_remove.append(paragraph)
                     break
-                _replace_in_paragraph(paragraph, key, value)
+                sz = 10 if key in rop_keys else 12
+                _replace_in_paragraph(paragraph, key, value, size_pt=sz)
     for p in paragraphs_to_remove:
         _remove_paragraph(p)
 
@@ -581,7 +603,8 @@ def generate_br_word(
                             if value is None:
                                 paragraphs_to_remove.append(paragraph)
                                 break
-                            _replace_in_paragraph(paragraph, key, value)
+                            sz = 10 if key in rop_keys else 12
+                            _replace_in_paragraph(paragraph, key, value, size_pt=sz)
     for p in paragraphs_to_remove:
         _remove_paragraph(p)
 
