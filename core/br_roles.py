@@ -225,7 +225,7 @@ def _remove_paragraph(paragraph):
         parent.remove(p_element)
 
 
-def _replace_in_paragraph(paragraph, key: str, value: str, size_pt: int = 12):
+def _replace_in_paragraph(paragraph, key: str, value: str, size_pt: int = 10):
     """Замінює плейсхолдер у параграфі, підтримує багаторядкові значення."""
     from docx.shared import Pt
     from docx.oxml.ns import qn
@@ -572,10 +572,7 @@ def generate_br_word(
     # Для звичайних плейсхолдерів ставимо заглушку (буде замінено нижче)
     replacements["{{ACK_LIST}}"] = "—" if not ack_members else ""
 
-    # Плейсхолдери ROP — шрифт 10pt
-    rop_keys = {"{{ROP}}", "{{ROP1}}", "{{ROP2}}", "{{ROP3}}", "{{ROP4}}"}
-
-    # Замінюємо у параграфах
+    # Замінюємо у параграфах (шрифт 10pt)
     paragraphs_to_remove = []
     for paragraph in doc.paragraphs:
         # Спеціальна обробка ACK_LIST — кожна людина як окремий параграф
@@ -587,12 +584,11 @@ def generate_br_word(
                 if value is None:
                     paragraphs_to_remove.append(paragraph)
                     break
-                sz = 10 if key in rop_keys else 12
-                _replace_in_paragraph(paragraph, key, value, size_pt=sz)
+                _replace_in_paragraph(paragraph, key, value, size_pt=10)
     for p in paragraphs_to_remove:
         _remove_paragraph(p)
 
-    # Замінюємо в таблицях
+    # Замінюємо в таблицях (шрифт 10pt)
     paragraphs_to_remove = []
     for table in doc.tables:
         for row in table.rows:
@@ -603,8 +599,7 @@ def generate_br_word(
                             if value is None:
                                 paragraphs_to_remove.append(paragraph)
                                 break
-                            sz = 10 if key in rop_keys else 12
-                            _replace_in_paragraph(paragraph, key, value, size_pt=sz)
+                            _replace_in_paragraph(paragraph, key, value, size_pt=10)
     for p in paragraphs_to_remove:
         _remove_paragraph(p)
 
