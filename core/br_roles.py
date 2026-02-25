@@ -530,17 +530,16 @@ def generate_br_word(
             else:
                 replacements[placeholder] = "—"
 
-    # ROP — бійці з 2-го "роп" і далі, перелік через кому
+    # ROP — бійці з продовженням "роп" (2-й+ день), перелік через кому
     # Завдання {{ROP1}}-{{ROP4}} з ROP.txt
     rop_placeholders = {}
     if tabel_file:
-        from br_updater import get_first_rop_entries
-        rop_entries = get_first_rop_entries(tabel_file, br_date)
-        extra_rop = rop_entries[1:] if len(rop_entries) > 1 else []
-        if extra_rop:
+        from br_updater import get_continuing_rop_entries
+        continuing_rop = get_continuing_rop_entries(tabel_file, br_date)
+        if continuing_rop:
             rop_list = ", ".join(
                 pib_to_document_format(pib, rank)
-                for pib, rank, pos in extra_rop
+                for pib, rank, pos in continuing_rop
             )
             replacements["{{ROP}}"] = rop_list
         else:
