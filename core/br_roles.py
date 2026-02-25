@@ -628,12 +628,9 @@ def generate_rop_word(
     from docx import Document
     from br_updater import get_first_rop_entries
 
-    all_entries = get_first_rop_entries(tabel_file, br_date)
-    if not all_entries:
+    entries = get_first_rop_entries(tabel_file, br_date)
+    if not entries:
         return None
-
-    # Тільки 1-й запис (решта йдуть в основний БР під {{ROP}})
-    entries = all_entries[:1]
 
     if not os.path.exists(template_path):
         raise FileNotFoundError(f"Шаблон не знайдено: {template_path}")
@@ -675,7 +672,7 @@ def generate_rop_word(
             continue
         for key, value in replacements.items():
             if key in paragraph.text:
-                _replace_in_paragraph(paragraph, key, value)
+                _replace_in_paragraph(paragraph, key, value, size_pt=10)
 
     for table in doc.tables:
         for row in table.rows:
@@ -686,7 +683,7 @@ def generate_rop_word(
                         continue
                     for key, value in replacements.items():
                         if key in paragraph.text:
-                            _replace_in_paragraph(paragraph, key, value)
+                            _replace_in_paragraph(paragraph, key, value, size_pt=10)
 
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, f"БР_ком_12шр_№{day_of_year}_1_від_{date_str.replace('.', '_')}.docx")
