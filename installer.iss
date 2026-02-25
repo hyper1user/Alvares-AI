@@ -29,7 +29,6 @@ Source: "dist\Alvares\_internal\templates\pozition_template.docx"; DestDir: "{ap
 ; Робочі файли (onlyifdoesntexist — щоб не затерти дані при оновленні)
 Source: "Табель_Багатомісячний.xlsx"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
 Source: "BR_4ShB.xlsx"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
-Source: "ROP.txt"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
 Source: "app.db"; DestDir: "{app}"; Flags: ignoreversion
 
 [Dirs]
