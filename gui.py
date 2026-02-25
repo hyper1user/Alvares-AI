@@ -111,6 +111,7 @@ class ReportGUI:
 
         self.template_path = os.path.join(base_path, "templates", "rozp_template.docx")
         self.rop_template_path = os.path.join(base_path, "templates", "pozition_template.docx")
+        self.rop_txt_path = os.path.join(app_dir, "ROP.txt")
         self.br_4shb_file = os.path.join(app_dir, "BR_4ShB.xlsx")
         self.output_dir = os.path.join(app_dir, "output")
 
@@ -1212,7 +1213,9 @@ class ReportGUI:
 
                     result_path = generate_br_word(
                         current, composition, self.template_path, self.output_dir,
-                        br_4shb_file=self.br_4shb_file
+                        br_4shb_file=self.br_4shb_file,
+                        tabel_file=self.excel_file,
+                        rop_txt_path=self.rop_txt_path
                     )
                     self.root.after(0, lambda p=result_path: self._log(f"  Створено: {p}"))
                     created += 1

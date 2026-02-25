@@ -473,7 +473,9 @@ def generate_br_word(
     composition: Dict[str, List[Dict]],
     template_path: str,
     output_dir: str = "output",
-    br_4shb_file: str = None
+    br_4shb_file: str = None,
+    tabel_file: str = None,
+    rop_txt_path: str = None
 ) -> str:
     """
     Генерує Word-документ БР з шаблону, замінюючи плейсхолдери.
@@ -526,6 +528,36 @@ def generate_br_word(
                 replacements[placeholder] = None  # маркер для видалення абзацу
             else:
                 replacements[placeholder] = "—"
+
+    # ROP — бійці з 2-го "роп" і далі, завдання з ROP.txt
+    if tabel_file and rop_txt_path and os.path.exists(rop_txt_path):
+        from br_updater import get_first_rop_entries
+        rop_entries = get_first_rop_entries(tabel_file, br_date)
+        # Пропускаємо 1-й запис (він іде в pozition_template), беремо з 2-го
+        extra_rop = rop_entries[1:] if len(rop_entries) > 1 else []
+        if extra_rop:
+            with open(rop_txt_path, "r", encoding="utf-8") as f:
+                rop_text = f.read()
+            for i, (pib, rank, pos) in enumerate(extra_rop[:4], start=1):
+                marker = f"{{{{ROP{i}}}}}"
+                formatted = f"{pib_to_document_format(pib, rank)}, {pos}"
+                rop_text = rop_text.replace(marker, formatted)
+            # Видаляємо рядки з незаміненими маркерами {{ROPn}}
+            import re
+            lines = rop_text.split("\n")
+            lines = [ln for ln in lines if not re.search(r"\{\{ROP\d+\}\}", ln)]
+            # Прибираємо зайві порожні рядки
+            cleaned = []
+            for ln in lines:
+                if ln.strip() == "" and cleaned and cleaned[-1].strip() == "":
+                    continue
+                cleaned.append(ln)
+            rop_text = "\n".join(cleaned).strip()
+            replacements["{{ROP}}"] = rop_text
+        else:
+            replacements["{{ROP}}"] = None  # видалити абзац якщо немає записів
+    else:
+        replacements["{{ROP}}"] = None  # видалити абзац якщо немає ROP.txt
 
     # ACK_LIST — аркуш доведення: окремі параграфи для кожної людини
     from br_updater import pib_to_table_format
@@ -588,9 +620,12 @@ def generate_rop_word(
     from docx import Document
     from br_updater import get_first_rop_entries
 
-    entries = get_first_rop_entries(tabel_file, br_date)
-    if not entries:
+    all_entries = get_first_rop_entries(tabel_file, br_date)
+    if not all_entries:
         return None
+
+    # Тільки 1-й запис (решта йдуть в основний БР під {{ROP}})
+    entries = all_entries[:1]
 
     if not os.path.exists(template_path):
         raise FileNotFoundError(f"Шаблон не знайдено: {template_path}")
