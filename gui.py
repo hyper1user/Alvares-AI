@@ -444,7 +444,9 @@ class ReportGUI:
         ctk.CTkRadioButton(variant_frame, text="Варіант А", variable=self.template_variant_var,
                             value="variant_a").pack(side="left", padx=(0, 20))
         ctk.CTkRadioButton(variant_frame, text="Варіант Б", variable=self.template_variant_var,
-                            value="variant_b").pack(side="left")
+                            value="variant_b").pack(side="left", padx=(0, 20))
+        ctk.CTkRadioButton(variant_frame, text="А → Б (чергування)", variable=self.template_variant_var,
+                            value="alternate").pack(side="left")
 
         ctk.CTkLabel(main, text="Початковий номер наказу", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(0, 5))
 
@@ -1206,16 +1208,25 @@ class ReportGUI:
             return
 
         variant = self.template_variant_var.get()
-        if variant == "variant_a":
-            tpl_path = self.template_var_a_path
-        elif variant == "variant_b":
-            tpl_path = self.template_var_b_path
+        if variant == "alternate":
+            alternate_templates = [self.template_var_a_path, self.template_var_b_path]
+            for p in alternate_templates:
+                if not os.path.exists(p):
+                    messagebox.showerror("Помилка", f"Шаблон не знайдено: {p}")
+                    return
+            tpl_path = None  # визначається в циклі
         else:
-            tpl_path = self.template_path
+            if variant == "variant_a":
+                tpl_path = self.template_var_a_path
+            elif variant == "variant_b":
+                tpl_path = self.template_var_b_path
+            else:
+                tpl_path = self.template_path
+            alternate_templates = None
 
-        if not os.path.exists(tpl_path):
-            messagebox.showerror("Помилка", f"Шаблон не знайдено: {tpl_path}")
-            return
+            if not os.path.exists(tpl_path):
+                messagebox.showerror("Помилка", f"Шаблон не знайдено: {tpl_path}")
+                return
 
         self.log_text.configure(state="normal")
         self.log_text.delete("0.0", "end")
@@ -1225,6 +1236,7 @@ class ReportGUI:
             from datetime import timedelta
             try:
                 created = 0
+                alt_index = 0
                 current = start_date
                 while current <= end_date:
                     ds = current.strftime("%d.%m.%Y")
@@ -1233,8 +1245,16 @@ class ReportGUI:
                     total = sum(len(m) for m in composition.values())
                     self.root.after(0, lambda t=total: self._log(f"  Осіб з роллю: {t}"))
 
+                    if alternate_templates is not None:
+                        current_tpl = alternate_templates[alt_index % 2]
+                        label = "А" if alt_index % 2 == 0 else "Б"
+                        self.root.after(0, lambda lb=label: self._log(f"  Шаблон: Варіант {lb}"))
+                        alt_index += 1
+                    else:
+                        current_tpl = tpl_path
+
                     result_path = generate_br_word(
-                        current, composition, tpl_path, self.output_dir,
+                        current, composition, current_tpl, self.output_dir,
                         br_4shb_file=self.br_4shb_file,
                         tabel_file=self.excel_file,
                         rop_txt_path=self.rop_txt_path
