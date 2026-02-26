@@ -258,6 +258,43 @@ def get_first_rop_entries(
     return result
 
 
+def get_soldiers_returning_from_rop(
+    tabel_file: str, br_date: datetime
+) -> List[Tuple[str, str]]:
+    """
+    Знаходить бійців, у яких серія 'роп' щойно закінчилась:
+    - на дату БР (br_date) позначка == 'роп'
+    - на дату табеля (br_date+1) позначка != 'роп' і != '100' (порожньо)
+    Без них ці бійці взагалі не потрапляють до складу БР.
+
+    Returns:
+        [(pib, rank)]
+    """
+    tabel_date = get_tabel_date(br_date)
+
+    try:
+        _, rop_on_br_date, _ = _get_soldiers_from_tabel_detailed(tabel_file, br_date)
+    except ValueError:
+        return []
+
+    if not rop_on_br_date:
+        return []
+
+    try:
+        soldiers_100_tabel, rop_on_tabel_date, _ = _get_soldiers_from_tabel_detailed(tabel_file, tabel_date)
+    except ValueError:
+        return []
+
+    # ПІБ тих, хто вже є в складі через "100" або ще "роп" на дату табеля
+    already_in_br = {normalize_pib(p) for p, _ in soldiers_100_tabel + rop_on_tabel_date}
+
+    return [
+        (pib, rank)
+        for pib, rank in rop_on_br_date
+        if normalize_pib(pib) not in already_in_br
+    ]
+
+
 def get_continuing_rop_entries(
     tabel_file: str, br_date: datetime
 ) -> List[Tuple[str, str, str]]:

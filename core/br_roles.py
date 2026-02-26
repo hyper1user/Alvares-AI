@@ -14,7 +14,7 @@ else:
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from br_updater import get_tabel_date, get_soldiers_from_tabel, _get_soldiers_from_tabel_detailed, pib_to_document_format, normalize_pib
+from br_updater import get_tabel_date, get_soldiers_from_tabel, _get_soldiers_from_tabel_detailed, pib_to_document_format, normalize_pib, get_soldiers_returning_from_rop
 from br_calculator import get_br_number
 from excel_processor import TabelReader
 from data.database import (
@@ -174,20 +174,29 @@ def auto_assign_all_roles() -> Dict[str, int]:
 def get_soldiers_100_for_br_date(tabel_file: str, br_date: datetime) -> List[Tuple[str, str]]:
     """
     Для дати БР обчислює дату табеля (BR+1), читає табель,
-    повертає ТІЛЬКИ mark==100 (без "роп") як [(pib, rank)].
-    Бійці з "роп" на позиціях — вони НЕ включаються до БР.
+    повертає бійців з mark==100 АБО mark=="роп" як [(pib, rank)].
+    Також додає тих, у кого роп щойно закінчився (вчора="роп", сьогодні=порожньо).
     """
     tabel_date = get_tabel_date(br_date)
-    soldiers_100, _soldiers_rop, _ = _get_soldiers_from_tabel_detailed(tabel_file, tabel_date)
-    return soldiers_100
+    soldiers_100, soldiers_rop, _ = _get_soldiers_from_tabel_detailed(tabel_file, tabel_date)
+
+    result = soldiers_100 + soldiers_rop
+
+    # Бійці, у яких роп закінчився і клітинка сьогодні порожня
+    returning = get_soldiers_returning_from_rop(tabel_file, br_date)
+    if returning:
+        existing = {normalize_pib(p) for p, _ in result}
+        result += [(p, r) for p, r in returning if normalize_pib(p) not in existing]
+
+    return result
 
 
 def build_composition_for_date(
     tabel_file: str, br_date: datetime
 ) -> Dict[str, List[Dict]]:
     """
-    Формує склад БР на дату: для кожної ролі — список людей з mark==100.
-    Бійці з позначкою "роп" (на позиціях) НЕ включаються до БР.
+    Формує склад БР на дату: для кожної ролі — список людей з mark==100 або mark=="роп",
+    а також тих, у кого роп щойно закінчився (повернулись з позиції).
     Ті, хто без ролі → "Резервні групи".
     """
     soldiers_100 = get_soldiers_100_for_br_date(tabel_file, br_date)
