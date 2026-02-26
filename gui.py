@@ -110,7 +110,10 @@ class ReportGUI:
         init_db()
 
         self.template_path = os.path.join(base_path, "templates", "rozp_template.docx")
+        self.template_var_a_path = os.path.join(base_path, "templates", "rozp_Variant_A.docx")
+        self.template_var_b_path = os.path.join(base_path, "templates", "rozp_Variant_B.docx")
         self.rop_template_path = os.path.join(base_path, "templates", "pozition_template.docx")
+        self.template_variant_var = tk.StringVar(value="standard")
         self.rop_txt_path = os.path.join(app_dir, "ROP.txt")
         self.br_4shb_file = os.path.join(app_dir, "BR_4ShB.xlsx")
         self.output_dir = os.path.join(app_dir, "output")
@@ -432,6 +435,17 @@ class ReportGUI:
         ctk.CTkEntry(row2, textvariable=self.end_date_var, width=180, font=ctk.CTkFont(size=12)).pack(side="left")
 
         # Номер наказу
+        # Вибір шаблону
+        ctk.CTkLabel(main, text="Шаблон БР", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(0, 5))
+        variant_frame = ctk.CTkFrame(main, fg_color="transparent")
+        variant_frame.pack(fill="x", pady=(0, 15))
+        ctk.CTkRadioButton(variant_frame, text="Стандарт", variable=self.template_variant_var,
+                            value="standard").pack(side="left", padx=(0, 20))
+        ctk.CTkRadioButton(variant_frame, text="Варіант А", variable=self.template_variant_var,
+                            value="variant_a").pack(side="left", padx=(0, 20))
+        ctk.CTkRadioButton(variant_frame, text="Варіант Б", variable=self.template_variant_var,
+                            value="variant_b").pack(side="left")
+
         ctk.CTkLabel(main, text="Початковий номер наказу", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(0, 5))
 
         order_frame = ctk.CTkFrame(main)
@@ -1191,8 +1205,16 @@ class ReportGUI:
             messagebox.showerror("Помилка", "Початкова дата не може бути пізнішою за кінцеву!")
             return
 
-        if not os.path.exists(self.template_path):
-            messagebox.showerror("Помилка", f"Шаблон не знайдено: {self.template_path}")
+        variant = self.template_variant_var.get()
+        if variant == "variant_a":
+            tpl_path = self.template_var_a_path
+        elif variant == "variant_b":
+            tpl_path = self.template_var_b_path
+        else:
+            tpl_path = self.template_path
+
+        if not os.path.exists(tpl_path):
+            messagebox.showerror("Помилка", f"Шаблон не знайдено: {tpl_path}")
             return
 
         self.log_text.configure(state="normal")
@@ -1212,7 +1234,7 @@ class ReportGUI:
                     self.root.after(0, lambda t=total: self._log(f"  Осіб з роллю: {t}"))
 
                     result_path = generate_br_word(
-                        current, composition, self.template_path, self.output_dir,
+                        current, composition, tpl_path, self.output_dir,
                         br_4shb_file=self.br_4shb_file,
                         tabel_file=self.excel_file,
                         rop_txt_path=self.rop_txt_path

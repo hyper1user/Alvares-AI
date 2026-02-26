@@ -37,6 +37,8 @@ PLACEHOLDER_MAP = {
     "Водії роти": "{{ROLE_DRIVERS}}",
     "Чергові зв'язківці": "{{ROLE_SIGNAL}}",
     "Резервні групи": "{{ROLE_RESERVE}}",
+    "Супровід FPV": "{{ROLE_FPV_ESCORT}}",
+    "Водії логістики": "{{ROLE_LOGISTICS_DRIVERS}}",
 }
 
 # Дефолтні значення для ролей, якщо немає бійців з mark==100
@@ -92,6 +94,11 @@ def auto_assign_role(position: str) -> Optional[str]:
 
     if has_vodiy:
         return "Водії роти"
+
+    if "fpv" in pos_lower:
+        return "Супровід FPV"
+    if "логістик" in pos_lower:
+        return "Водії логістики"
 
     keyword_map = [
         ("зв'яз", "Чергові зв'язківці"),

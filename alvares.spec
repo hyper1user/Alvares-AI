@@ -12,6 +12,8 @@ a = Analysis(
     datas=[
         ('templates/rozp_template.docx', 'templates'),
         ('templates/pozition_template.docx', 'templates'),
+        ('templates/rozp_Variant_A.docx', 'templates'),
+        ('templates/rozp_Variant_B.docx', 'templates'),
         ('emblem.png', '.'),
         ('alvares.ico', '.'),
         ('alvares_icon.png', '.'),
