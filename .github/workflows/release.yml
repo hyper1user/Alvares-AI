@@ -30,6 +30,29 @@ jobs:
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
 
+      - name: Create placeholder data files
+        shell: bash
+        run: |
+          python - <<'EOF'
+          import sqlite3, openpyxl
+          conn = sqlite3.connect("app.db")
+          conn.executescript("""
+            CREATE TABLE IF NOT EXISTS personnel (
+              pib TEXT PRIMARY KEY, rank TEXT NOT NULL DEFAULT '',
+              position TEXT NOT NULL DEFAULT '',
+              updated_at TEXT NOT NULL DEFAULT (datetime('now')));
+            CREATE TABLE IF NOT EXISTS roles (
+              id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL);
+            CREATE TABLE IF NOT EXISTS personnel_roles (
+              pib TEXT PRIMARY KEY, role_id INTEGER);
+            CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
+          """)
+          conn.close()
+          openpyxl.Workbook().save("Табель_Багатомісячний.xlsx")
+          openpyxl.Workbook().save("BR_4ShB.xlsx")
+          EOF
+          touch ROP.txt
+
       - name: Build installer
         run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss'
         shell: pwsh
