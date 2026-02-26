@@ -14,7 +14,6 @@ a = Analysis(
         ('templates/pozition_template.docx', 'templates'),
         ('templates/rozp_Variant_A.docx', 'templates'),
         ('templates/rozp_Variant_B.docx', 'templates'),
-        ('emblem.png', '.'),
         ('alvares.ico', '.'),
         ('alvares_icon.png', '.'),
         ('alvares_busy.png', '.'),
