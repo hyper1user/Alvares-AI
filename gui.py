@@ -112,6 +112,11 @@ class ReportGUI:
         self.template_path = os.path.join(base_path, "templates", "rozp_template.docx")
         self.template_var_a_path = os.path.join(base_path, "templates", "rozp_Variant_A.docx")
         self.template_var_b_path = os.path.join(base_path, "templates", "rozp_Variant_B.docx")
+        self.template_variants = {}  # {"A": path, "B": path, ...}
+        for letter in "ABCDEFG":
+            p = os.path.join(base_path, "templates", f"rozp_Variant_{letter}.docx")
+            if os.path.exists(p):
+                self.template_variants[letter] = p
         self.template_variant_var = tk.StringVar(value="standard")
         self.rop_txt_path = os.path.join(app_dir, "ROP.txt")
         self.dodatky_path = os.path.join(app_dir, "Dodatky.md")
@@ -445,8 +450,9 @@ class ReportGUI:
                             value="variant_a").pack(side="left", padx=(0, 20))
         ctk.CTkRadioButton(variant_frame, text="Варіант Б", variable=self.template_variant_var,
                             value="variant_b").pack(side="left", padx=(0, 20))
-        ctk.CTkRadioButton(variant_frame, text="А → Б (чергування)", variable=self.template_variant_var,
-                            value="alternate").pack(side="left")
+        variants_label = "—".join(sorted(self.template_variants.keys()))
+        ctk.CTkRadioButton(variant_frame, text=f"Рандом ({variants_label})", variable=self.template_variant_var,
+                            value="random").pack(side="left")
 
         ctk.CTkLabel(main, text="Початковий номер наказу", font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(0, 5))
 
@@ -1208,13 +1214,13 @@ class ReportGUI:
             return
 
         variant = self.template_variant_var.get()
-        if variant == "alternate":
-            alternate_templates = [self.template_var_a_path, self.template_var_b_path]
-            for p in alternate_templates:
-                if not os.path.exists(p):
-                    messagebox.showerror("Помилка", f"Шаблон не знайдено: {p}")
-                    return
-            tpl_path = None  # визначається в циклі
+        random_templates = None
+        if variant == "random":
+            if not self.template_variants:
+                messagebox.showerror("Помилка", "Не знайдено жодного шаблону варіанту!")
+                return
+            random_templates = list(self.template_variants.items())  # [("A", path), ...]
+            tpl_path = None
         else:
             if variant == "variant_a":
                 tpl_path = self.template_var_a_path
@@ -1222,7 +1228,6 @@ class ReportGUI:
                 tpl_path = self.template_var_b_path
             else:
                 tpl_path = self.template_path
-            alternate_templates = None
 
             if not os.path.exists(tpl_path):
                 messagebox.showerror("Помилка", f"Шаблон не знайдено: {tpl_path}")
@@ -1233,10 +1238,10 @@ class ReportGUI:
         self._log(f"Генерація Word БР: {start_str} — {end_str}")
 
         def do_generate():
+            import random
             from datetime import timedelta
             try:
                 created = 0
-                alt_index = 0
                 current = start_date
                 while current <= end_date:
                     ds = current.strftime("%d.%m.%Y")
@@ -1245,11 +1250,9 @@ class ReportGUI:
                     total = sum(len(m) for m in composition.values())
                     self.root.after(0, lambda t=total: self._log(f"  Осіб з роллю: {t}"))
 
-                    if alternate_templates is not None:
-                        current_tpl = alternate_templates[alt_index % 2]
-                        label = "А" if alt_index % 2 == 0 else "Б"
+                    if random_templates is not None:
+                        label, current_tpl = random.choice(random_templates)
                         self.root.after(0, lambda lb=label: self._log(f"  Шаблон: Варіант {lb}"))
-                        alt_index += 1
                     else:
                         current_tpl = tpl_path
 

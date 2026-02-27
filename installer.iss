@@ -3,7 +3,7 @@
 [Setup]
 AppId={{alvares-ai-app}
 AppName=АЛЬВАРЕС AI
-AppVersion=1.7.1
+AppVersion=1.8.0
 AppPublisher=12 штурмова рота
 DefaultDirName={autopf}\AlvaresAI
 DefaultGroupName=АЛЬВАРЕС AI
@@ -20,13 +20,18 @@ Name: "ukrainian"; MessagesFile: "compiler:Languages\Ukrainian.isl"
 
 [Files]
 ; Вся папка dist\Alvares (крім шаблонів — вони окремо)
-Source: "dist\Alvares\*"; DestDir: "{app}"; Excludes: "_internal\templates\rozp_template.docx,_internal\templates\pozition_template.docx,_internal\templates\rozp_Variant_A.docx,_internal\templates\rozp_Variant_B.docx"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\Alvares\*"; DestDir: "{app}"; Excludes: "_internal\templates\rozp_template.docx,_internal\templates\pozition_template.docx,_internal\templates\rozp_Variant_A.docx,_internal\templates\rozp_Variant_B.docx,_internal\templates\rozp_Variant_C.docx,_internal\templates\rozp_Variant_D.docx,_internal\templates\rozp_Variant_E.docx,_internal\templates\rozp_Variant_F.docx,_internal\templates\rozp_Variant_G.docx"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; Шаблони БР — не перезаписувати якщо користувач редагував
 Source: "dist\Alvares\_internal\templates\rozp_template.docx"; DestDir: "{app}\_internal\templates"; Flags: onlyifdoesntexist
 Source: "dist\Alvares\_internal\templates\pozition_template.docx"; DestDir: "{app}\_internal\templates"; Flags: onlyifdoesntexist
 Source: "dist\Alvares\_internal\templates\rozp_Variant_A.docx"; DestDir: "{app}\_internal\templates"; Flags: onlyifdoesntexist
 Source: "dist\Alvares\_internal\templates\rozp_Variant_B.docx"; DestDir: "{app}\_internal\templates"; Flags: onlyifdoesntexist
+Source: "dist\Alvares\_internal\templates\rozp_Variant_C.docx"; DestDir: "{app}\_internal\templates"; Flags: onlyifdoesntexist
+Source: "dist\Alvares\_internal\templates\rozp_Variant_D.docx"; DestDir: "{app}\_internal\templates"; Flags: onlyifdoesntexist
+Source: "dist\Alvares\_internal\templates\rozp_Variant_E.docx"; DestDir: "{app}\_internal\templates"; Flags: onlyifdoesntexist
+Source: "dist\Alvares\_internal\templates\rozp_Variant_F.docx"; DestDir: "{app}\_internal\templates"; Flags: onlyifdoesntexist
+Source: "dist\Alvares\_internal\templates\rozp_Variant_G.docx"; DestDir: "{app}\_internal\templates"; Flags: onlyifdoesntexist
 
 ; Робочі файли (onlyifdoesntexist — щоб не затерти дані при оновленні)
 Source: "Табель_Багатомісячний.xlsx"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist
