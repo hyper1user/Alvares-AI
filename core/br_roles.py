@@ -577,8 +577,23 @@ def generate_br_word(
         "<<від 01.01.2026 р.>>": f"від {date_str} р.",
     }
 
+    # Збираємо ПІБ бійців з РОП (перший день + продовження) для виключення з ролей
+    rop_pibs = set()
+    first_rop_entries = []
+    continuing_rop = []
+    if tabel_file:
+        from br_updater import get_first_rop_entries, get_continuing_rop_entries
+        first_rop_entries = get_first_rop_entries(tabel_file, br_date)
+        continuing_rop = get_continuing_rop_entries(tabel_file, br_date)
+        for pib, _, _ in first_rop_entries:
+            rop_pibs.add(normalize_pib(pib))
+        for pib, _, _ in continuing_rop:
+            rop_pibs.add(normalize_pib(pib))
+
     for role_name, placeholder in PLACEHOLDER_MAP.items():
         members = composition.get(role_name, [])
+        # Виключаємо бійців, які є в РОП — вони вказуються тільки в {{ROP_FIRST}} або {{ROP}}
+        members = [m for m in members if normalize_pib(m["pib"]) not in rop_pibs]
         if members:
             parts = [pib_to_document_format(m["pib"], m["rank"]) for m in members]
             replacements[placeholder] = ", ".join(parts)
@@ -593,17 +608,12 @@ def generate_br_word(
     # ROP — бійці з продовженням "роп" (2-й+ день), перелік через кому
     # Завдання {{ROP1}}-{{ROP4}} з ROP.txt
     rop_placeholders = {}
-    if tabel_file:
-        from br_updater import get_continuing_rop_entries
-        continuing_rop = get_continuing_rop_entries(tabel_file, br_date)
-        if continuing_rop:
-            rop_list = ", ".join(
-                pib_to_document_format(pib, rank)
-                for pib, rank, pos in continuing_rop
-            )
-            replacements["{{ROP}}"] = rop_list
-        else:
-            replacements["{{ROP}}"] = None
+    if continuing_rop:
+        rop_list = ", ".join(
+            pib_to_document_format(pib, rank)
+            for pib, rank, pos in continuing_rop
+        )
+        replacements["{{ROP}}"] = rop_list
     else:
         replacements["{{ROP}}"] = None
 
@@ -632,10 +642,6 @@ def generate_br_word(
         replacements["{{КСП_РОТИ}}"] = "—"
 
     # {{ROP_FIRST}} — бійці з першим днем "роп"
-    first_rop_entries = []
-    if tabel_file:
-        from br_updater import get_first_rop_entries
-        first_rop_entries = get_first_rop_entries(tabel_file, br_date)
     if first_rop_entries:
         rop_first_lines = ";\n".join(
             f"{pib_to_document_format(pib, rank)}, {pos}"
