@@ -485,6 +485,49 @@ def get_br_from_4shb(br_4shb_file: str, tabel_date: datetime) -> Tuple[str, str]
     return "—", "—"
 
 
+def _process_if_rop_block(doc, has_rop: bool):
+    """
+    Обробляє IF-блок {{IF_ROP}}...{{/IF_ROP}} у документі.
+    Якщо has_rop=True — видаляє тільки маркери, залишає вміст.
+    Якщо has_rop=False — видаляє весь блок (всі параграфи між маркерами включно).
+    """
+    paragraphs = doc.paragraphs
+    start_idx = None
+    end_idx = None
+
+    for i, p in enumerate(paragraphs):
+        if "{{IF_ROP}}" in p.text:
+            start_idx = i
+        if "{{/IF_ROP}}" in p.text:
+            end_idx = i
+            break
+
+    if start_idx is None or end_idx is None:
+        return
+
+    if has_rop:
+        # Видаляємо тільки маркери з тексту параграфів
+        start_p = paragraphs[start_idx]
+        end_p = paragraphs[end_idx]
+        if start_p.text.strip() == "{{IF_ROP}}":
+            _remove_paragraph(start_p)
+        else:
+            _replace_in_paragraph(start_p, "{{IF_ROP}}", "", size_pt=10)
+        # Після видалення start_p індекси зсунулися, шукаємо end заново
+        for p in doc.paragraphs:
+            if "{{/IF_ROP}}" in p.text:
+                if p.text.strip() == "{{/IF_ROP}}":
+                    _remove_paragraph(p)
+                else:
+                    _replace_in_paragraph(p, "{{/IF_ROP}}", "", size_pt=10)
+                break
+    else:
+        # Видаляємо весь блок: від start_idx до end_idx включно
+        to_remove = list(paragraphs[start_idx:end_idx + 1])
+        for p in to_remove:
+            _remove_paragraph(p)
+
+
 def generate_br_word(
     br_date: datetime,
     composition: Dict[str, List[Dict]],
@@ -492,7 +535,8 @@ def generate_br_word(
     output_dir: str = "output",
     br_4shb_file: str = None,
     tabel_file: str = None,
-    rop_txt_path: str = None
+    rop_txt_path: str = None,
+    dodatky_path: str = None
 ) -> str:
     """
     Генерує Word-документ БР з шаблону, замінюючи плейсхолдери.
@@ -577,15 +621,45 @@ def generate_br_word(
         marker = f"{{{{ROP{i}}}}}"
         replacements[marker] = rop_placeholders.get(marker, None)
 
+    # Маркери з Dodatky.md: {{населений_пункт}}, {{КСП_РОТИ}}
+    if dodatky_path:
+        from core.dodatky_parser import get_location_for_date
+        location = get_location_for_date(dodatky_path, br_date)
+        replacements["{{населений_пункт}}"] = location["населений_пункт"]
+        replacements["{{КСП_РОТИ}}"] = location["КСП_РОТИ"]
+    else:
+        replacements["{{населений_пункт}}"] = "—"
+        replacements["{{КСП_РОТИ}}"] = "—"
+
+    # {{ROP_FIRST}} — бійці з першим днем "роп"
+    first_rop_entries = []
+    if tabel_file:
+        from br_updater import get_first_rop_entries
+        first_rop_entries = get_first_rop_entries(tabel_file, br_date)
+    if first_rop_entries:
+        rop_first_lines = ";\n".join(
+            f"{pib_to_document_format(pib, rank)}, {pos}"
+            for pib, rank, pos in first_rop_entries
+        ) + ";"
+        replacements["{{ROP_FIRST}}"] = rop_first_lines
+    else:
+        replacements["{{ROP_FIRST}}"] = ""
+
     # ACK_LIST — аркуш доведення: окремі параграфи для кожної людини
     from br_updater import pib_to_table_format
     all_members = []
     for members in composition.values():
         all_members.extend(members)
-    ack_members = all_members  # зберігаємо для спеціальної обробки
+    # Додаємо бійців з ROP_FIRST до аркуша доведення
+    for pib, rank, _ in first_rop_entries:
+        all_members.append({"pib": pib, "rank": rank})
+    ack_members = all_members
 
     # Для звичайних плейсхолдерів ставимо заглушку (буде замінено нижче)
     replacements["{{ACK_LIST}}"] = "—" if not ack_members else ""
+
+    # Обробка IF-блоку {{IF_ROP}}...{{/IF_ROP}}
+    _process_if_rop_block(doc, bool(first_rop_entries))
 
     # Замінюємо у параграфах (шрифт 10pt)
     paragraphs_to_remove = []
@@ -624,80 +698,5 @@ def generate_br_word(
     return output_file
 
 
-def generate_rop_word(
-    br_date: datetime,
-    tabel_file: str,
-    template_path: str,
-    output_dir: str = "output",
-    br_4shb_file: str = None
-) -> Optional[str]:
-    """
-    Генерує Word-документ БР для бійців з першим днем 'роп'.
-    Повертає шлях до файлу або None якщо немає бійців з 'роп'.
-    """
-    from docx import Document
-    from br_updater import get_first_rop_entries
-
-    entries = get_first_rop_entries(tabel_file, br_date)
-    if not entries:
-        return None
-
-    if not os.path.exists(template_path):
-        raise FileNotFoundError(f"Шаблон не знайдено: {template_path}")
-
-    doc = Document(template_path)
-
-    tabel_date = get_tabel_date(br_date)
-    date_str = br_date.strftime("%d.%m.%Y")
-    execution_date_str = tabel_date.strftime("%d.%m.%Y")
-    day_of_year = tabel_date.timetuple().tm_yday
-
-    # Номер БР з BR_4ShB (без "/1"), "/1" тільки для <<№*>>
-    if br_4shb_file:
-        br_4shb_num, _ = get_br_from_4shb(br_4shb_file, br_date)
-    else:
-        br_4shb_num = str(day_of_year)
-
-    # Формуємо список: "звання ПІБ, посада;" на кожен рядок
-    rop_lines = ";\n".join(
-        f"{pib_to_document_format(pib, rank)}, {pos}" for pib, rank, pos in entries
-    ) + ";"
-
-    # Аркуш доведення — список бійців
-    ack_members = [{"pib": pib, "rank": rank} for pib, rank, _ in entries]
-
-    replacements = {
-        "{{ROP}}": rop_lines,
-        "{{бр}}": br_4shb_num,
-        "{{дата_бр}}": date_str,
-        "{{ACK_LIST}}": "—" if not ack_members else "",
-        "<<Дата_виконання>>": execution_date_str,
-        "<<№*>>": f"№{day_of_year}/1",
-        "<<від 01.01.2026 р.>>": f"від {date_str} р.",
-    }
-
-    for paragraph in doc.paragraphs:
-        if "{{ACK_LIST}}" in paragraph.text and ack_members:
-            _insert_ack_list(paragraph, ack_members)
-            continue
-        for key, value in replacements.items():
-            if key in paragraph.text:
-                _replace_in_paragraph(paragraph, key, value, size_pt=10)
-
-    for table in doc.tables:
-        for row in table.rows:
-            for cell in row.cells:
-                for paragraph in cell.paragraphs:
-                    if "{{ACK_LIST}}" in paragraph.text and ack_members:
-                        _insert_ack_list(paragraph, ack_members)
-                        continue
-                    for key, value in replacements.items():
-                        if key in paragraph.text:
-                            _replace_in_paragraph(paragraph, key, value, size_pt=10)
-
-    os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, f"БР_ком_12шр_№{day_of_year}_1_від_{date_str.replace('.', '_')}.docx")
-    doc.save(output_file)
-    return output_file
 
 

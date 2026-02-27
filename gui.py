@@ -26,7 +26,7 @@ from data.database import (init_db, get_all_personnel, get_all_roles,
                            set_personnel_role)
 from core.br_roles import (auto_assign_all_roles, import_personnel_from_tabel,
                            build_composition_for_date, generate_br_word,
-                           generate_rop_word, get_active_personnel_for_month)
+                           get_active_personnel_for_month)
 from path_utils import get_base_path, get_app_dir
 from version import APP_VERSION
 from updater import check_for_update, get_releases_url, download_update, install_update
@@ -112,9 +112,9 @@ class ReportGUI:
         self.template_path = os.path.join(base_path, "templates", "rozp_template.docx")
         self.template_var_a_path = os.path.join(base_path, "templates", "rozp_Variant_A.docx")
         self.template_var_b_path = os.path.join(base_path, "templates", "rozp_Variant_B.docx")
-        self.rop_template_path = os.path.join(base_path, "templates", "pozition_template.docx")
         self.template_variant_var = tk.StringVar(value="standard")
         self.rop_txt_path = os.path.join(app_dir, "ROP.txt")
+        self.dodatky_path = os.path.join(app_dir, "Dodatky.md")
         self.br_4shb_file = os.path.join(app_dir, "BR_4ShB.xlsx")
         self.output_dir = os.path.join(app_dir, "output")
 
@@ -1257,19 +1257,11 @@ class ReportGUI:
                         current, composition, current_tpl, self.output_dir,
                         br_4shb_file=self.br_4shb_file,
                         tabel_file=self.excel_file,
-                        rop_txt_path=self.rop_txt_path
+                        rop_txt_path=self.rop_txt_path,
+                        dodatky_path=self.dodatky_path
                     )
                     self.root.after(0, lambda p=result_path: self._log(f"  Створено: {p}"))
                     created += 1
-
-                    # Генерація БР для бійців з першим днем "роп"
-                    rop_path = generate_rop_word(
-                        current, self.excel_file, self.rop_template_path,
-                        self.output_dir, br_4shb_file=self.br_4shb_file
-                    )
-                    if rop_path:
-                        self.root.after(0, lambda p=rop_path: self._log(f"  РОП: {p}"))
-                        created += 1
 
                     current += timedelta(days=1)
 
