@@ -151,8 +151,8 @@ class ExcelReportGenerator:
     
     def _get_period_for_category(self, soldier: SoldierData, category: str) -> str:
         """Повертає період для категорії"""
-        if category == "100" and soldier.days_100:
-            return self._format_period(soldier.days_100)
+        if category == "100" and soldier.days_100_combined:
+            return self._format_period(soldier.days_100_combined)
         elif category == "30" and soldier.days_30:
             return self._format_period(soldier.days_30)
         elif category == "0" and soldier.days_0:
@@ -162,7 +162,7 @@ class ExcelReportGenerator:
     def _get_days_count_for_category(self, soldier: SoldierData, category: str) -> int:
         """Повертає кількість днів для категорії"""
         if category == "100":
-            return len(soldier.days_100)
+            return len(soldier.days_100_combined)
         elif category == "30":
             return len(soldier.days_30)
         elif category == "0":

@@ -126,9 +126,9 @@ class WordReportGenerator:
             # ПІБ
             row.cells[2].text = soldier.pib
             
-            # Період
-            if category == "100" and soldier.days_100:
-                period = self._get_period_string(soldier.days_100)
+            # Період (для 100 враховуємо і дні "роп")
+            if category == "100" and soldier.days_100_combined:
+                period = self._get_period_string(soldier.days_100_combined)
             elif category == "30" and soldier.days_30:
                 period = self._get_period_string(soldier.days_30)
             else:

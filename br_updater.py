@@ -179,7 +179,15 @@ def _get_soldiers_from_tabel_detailed(
         mark = ws.cell(row, col_num).value
 
         if mark:
-            mark_str = str(mark).strip().lower()
+            mark_str = str(mark).strip()
+            # openpyxl може повертати float (100.0 замість 100)
+            try:
+                num_val = float(mark_str)
+                if num_val == int(num_val):
+                    mark_str = str(int(num_val))
+            except (ValueError, TypeError):
+                pass
+            mark_str = mark_str.lower()
             if mark_str == "100":
                 soldiers_100.append((pib_str, rank_str))
             elif mark_str == "роп":

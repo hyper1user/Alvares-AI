@@ -229,7 +229,16 @@ def build_composition_for_date(
                 })
                 assigned_pibs.add(norm)
 
-    # Бійці з 100 без ролі — НЕ включаються до БР
+    # Бійці з 100 без ролі → "Резервні групи"
+    if "Резервні групи" not in result:
+        result["Резервні групи"] = []
+    for norm_pib, (orig_pib, orig_rank) in pibs_100_map.items():
+        if norm_pib not in assigned_pibs:
+            result["Резервні групи"].append({
+                "pib": orig_pib,
+                "rank": orig_rank,
+                "position": ""
+            })
 
     return result
 

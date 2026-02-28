@@ -128,7 +128,15 @@ class TabelReader:
                 cell_value = ws.cell(row, col).value
                 
                 if cell_value:
-                    mark = str(cell_value).strip().lower()
+                    mark = str(cell_value).strip()
+                    # openpyxl може повертати float (100.0 замість 100)
+                    try:
+                        num_val = float(mark)
+                        if num_val == int(num_val):
+                            mark = str(int(num_val))
+                    except (ValueError, TypeError):
+                        pass
+                    mark = mark.lower()
                     # Нормалізуємо: "100" і "30" зберігаємо як є, "роп" окремо
                     if mark in ["100", "30", "0", "н-п", "н/п", "роп"]:
                         try:
