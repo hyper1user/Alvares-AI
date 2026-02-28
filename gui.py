@@ -1240,6 +1240,7 @@ class ReportGUI:
         def do_generate():
             import random
             from datetime import timedelta
+            from br_updater import clear_wb_cache
             try:
                 created = 0
                 current = start_date
@@ -1276,6 +1277,8 @@ class ReportGUI:
             except Exception as e:
                 self.root.after(0, lambda: self._log(f"ПОМИЛКА: {e}"))
                 self.root.after(0, lambda: self._update_status("Помилка генерації"))
+            finally:
+                clear_wb_cache()
 
         threading.Thread(target=do_generate, daemon=True).start()
 

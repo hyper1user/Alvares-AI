@@ -14,7 +14,7 @@ else:
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from br_updater import get_tabel_date, get_soldiers_from_tabel, _get_soldiers_from_tabel_detailed, pib_to_document_format, normalize_pib, get_soldiers_returning_from_rop
+from br_updater import get_tabel_date, get_soldiers_from_tabel, _get_soldiers_from_tabel_detailed, pib_to_document_format, normalize_pib, get_soldiers_returning_from_rop, _get_workbook
 from br_calculator import get_br_number
 from excel_processor import TabelReader
 from data.database import (
@@ -455,12 +455,10 @@ def get_br_from_4shb(br_4shb_file: str, tabel_date: datetime) -> Tuple[str, str]
     Returns:
         (номер_бр, дата_бр_форматована) або ("—", "—") якщо не знайдено
     """
-    import openpyxl
-
     if not os.path.exists(br_4shb_file):
         return "—", "—"
 
-    wb = openpyxl.load_workbook(br_4shb_file, data_only=True)
+    wb = _get_workbook(br_4shb_file)
     ws = wb[wb.sheetnames[0]]
 
     target_date = tabel_date.date() if hasattr(tabel_date, 'date') else tabel_date

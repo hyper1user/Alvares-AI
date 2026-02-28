@@ -8,6 +8,22 @@ from month_utils import parse_month_sheet_name
 import openpyxl
 from typing import List, Tuple
 
+# Кеш workbook: {шлях_файлу: workbook} — щоб не відкривати файл по 5 разів на кожен день
+_wb_cache = {}
+
+
+def _get_workbook(tabel_file: str):
+    """Повертає кешований workbook або завантажує новий."""
+    real_path = os.path.realpath(tabel_file)
+    if real_path not in _wb_cache:
+        _wb_cache[real_path] = openpyxl.load_workbook(tabel_file, data_only=True)
+    return _wb_cache[real_path]
+
+
+def clear_wb_cache():
+    """Очищає кеш workbook (викликати після завершення генерації)."""
+    _wb_cache.clear()
+
 
 def parse_filename_date(filename: str) -> datetime:
     """
@@ -138,7 +154,7 @@ def _get_soldiers_from_tabel_detailed(
     Returns:
         (soldiers_100, soldiers_rop, soldiers_30)
     """
-    wb = openpyxl.load_workbook(tabel_file, data_only=True)
+    wb = _get_workbook(tabel_file)
 
     sheet_name = None
     for name in wb.sheetnames:
@@ -210,7 +226,7 @@ def get_first_rop_entries(
     """
     tabel_date = get_tabel_date(br_date)
 
-    wb = openpyxl.load_workbook(tabel_file, data_only=True)
+    wb = _get_workbook(tabel_file)
 
     sheet_name = None
     for name in wb.sheetnames:
@@ -315,7 +331,7 @@ def get_continuing_rop_entries(
     """
     tabel_date = get_tabel_date(br_date)
 
-    wb = openpyxl.load_workbook(tabel_file, data_only=True)
+    wb = _get_workbook(tabel_file)
 
     sheet_name = None
     for name in wb.sheetnames:
