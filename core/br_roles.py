@@ -493,6 +493,42 @@ def get_br_from_4shb(br_4shb_file: str, tabel_date: datetime) -> Tuple[str, str]
     return "—", "—"
 
 
+def _process_rop_cont_block(doc, has_continuing_rop: bool):
+    """
+    Обробляє блок «Особовому складу на позиціях» з {{ROP}}.
+    Якщо has_continuing_rop=False — видаляє 3 абзаци:
+      1) "Особовому складу на позиціях:"
+      2) абзац з {{ROP}}
+      3) абзац із завданням (наступний після {{ROP}})
+    Якщо has_continuing_rop=True — нічого не робить (заміна {{ROP}} відбудеться пізніше).
+    """
+    if has_continuing_rop:
+        return
+
+    paragraphs = doc.paragraphs
+    rop_idx = None
+    for i, p in enumerate(paragraphs):
+        if "{{ROP}}" in p.text:
+            rop_idx = i
+            break
+
+    if rop_idx is None:
+        return
+
+    to_remove = []
+    # Абзац перед {{ROP}} — "Особовому складу на позиціях:"
+    if rop_idx > 0:
+        to_remove.append(paragraphs[rop_idx - 1])
+    # Абзац з {{ROP}}
+    to_remove.append(paragraphs[rop_idx])
+    # Абзац після {{ROP}} — завдання
+    if rop_idx + 1 < len(paragraphs):
+        to_remove.append(paragraphs[rop_idx + 1])
+
+    for p in to_remove:
+        _remove_paragraph(p)
+
+
 def _process_if_rop_block(doc, has_rop: bool):
     """
     Обробляє IF-блок {{IF_ROP}}...{{/IF_ROP}} у документі.
@@ -622,8 +658,6 @@ def generate_br_word(
             for pib, rank, pos in continuing_rop
         )
         replacements["{{ROP}}"] = rop_list
-    else:
-        replacements["{{ROP}}"] = None
 
     # Завдання з ROP.txt: {{ROP1}}-{{ROP4}}
     if rop_txt_path and os.path.exists(rop_txt_path):
@@ -671,6 +705,9 @@ def generate_br_word(
 
     # Для звичайних плейсхолдерів ставимо заглушку (буде замінено нижче)
     replacements["{{ACK_LIST}}"] = "—" if not ack_members else ""
+
+    # Обробка блоку «Особовому складу на позиціях» з {{ROP}}
+    _process_rop_cont_block(doc, bool(continuing_rop))
 
     # Обробка IF-блоку {{IF_ROP}}...{{/IF_ROP}}
     _process_if_rop_block(doc, bool(first_rop_entries))
